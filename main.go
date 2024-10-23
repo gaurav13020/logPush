@@ -6,19 +6,23 @@ import (
 	"log"
 	"logPush/kafkautils"
 
-	"github.com/confluentinc/confluent-kafka-go/kafka"
+	// "os"
+
+	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/gofiber/fiber/v2"
 )
 
 type LogEntry struct {
 	Msg       string `json:"msg"`
-	Timestamp string `json:"timestamp"` // Epoch/Unix timestamp
-	OtherKeys string `json:"other keys"`
+	Timestamp string `json:"timestamp"`
+	OtherKeys string `json:"otherKeys"`
 }
 
 func main() {
 	// Step 1: Create Kafka Admin Client
+	// kafka_host := os.Getenv("KAFKA_HOST")
 	adminClient, err := kafka.NewAdminClient(&kafka.ConfigMap{
-		"bootstrap.servers": "localhost:9092", // Replace with the first broker address
+		"bootstrap.servers": "host.docker.internal:9092", // Replace with the first broker address
 	})
 	if err != nil {
 		log.Fatalf("Failed to create Kafka admin client: %s\n", err)
@@ -28,7 +32,7 @@ func main() {
 	// Step 2: Initialize Kafka with partitions and get the config from init.go
 	kafkaConfig := kafkautils.InitKafka(adminClient)
 
-	// Step 3: Create Kafka producer and consumer clients (in kafka.go)
+	// Step 3: Create Kafka producer and consumer clients
 	producer, err := kafkautils.NewKafkaProducer(kafkaConfig.Brokers)
 	if err != nil {
 		log.Fatalf("Failed to create Kafka producer: %s\n", err)
@@ -47,29 +51,26 @@ func main() {
 		Consumer: consumer,
 	}
 
-	// Step 4: Produce a message to a specific partition (e.g., partition 1)
+	// Step 4: Set up Fiber server to receive logs from Fluentd
+	app := fiber.New()
 
-	logEntries := []LogEntry{
-		{
-			Msg:       "log message 1",
-			Timestamp: "UTC Timestamp/epoch", // Current timestamp in epoch
-			OtherKeys: "customvalues",
-		},
-		{
-			Msg:       "log message 2",
-			Timestamp: "UTC Timestamp/epoch",
-			OtherKeys: "customvalues",
-		},
-	}
+	// Define a route for log ingestion
+	app.Post("/api", func(c *fiber.Ctx) error {
+		// Get the raw JSON body from the request
+		jsonMessage := c.Body()
+		fmt.Print(jsonMessage)
 
-	for _, logEntry := range logEntries {
-		message := fmt.Sprintf("%v", logEntry)
-		kafkaClient.ProduceMessage(kafkaConfig.Topic, 1, message)
-	}
+		// Produce the raw JSON to Kafka
+		kafkaClient.ProduceMessage(kafkaConfig.Topic, 1, string(jsonMessage))
 
-	// message := "Hello Kafka with Partitions!"
-	// kafkaClient.ProduceMessage(kafkaConfig.Topic, 1, message)
+		return c.SendString("Log received and sent to Kafka")
+	})
 
-	// Step 5: Consume messages from the topic
+	// Start Fiber server to listen for logs from Fluentd
+	go func() {
+		log.Fatal(app.Listen("0.0.0.0:9000"))
+	}()
+
+	// Step 5: Consume messages from Kafka topic
 	kafkaClient.ConsumeMessages(kafkaConfig.Topic)
 }

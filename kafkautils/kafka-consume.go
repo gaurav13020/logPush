@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/confluentinc/confluent-kafka-go/kafka"
+	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 )
 
 type KafkaClient struct {
@@ -54,7 +54,7 @@ func (kc *KafkaClient) ProduceMessage(topic string, partition int32, message str
 	if m.TopicPartition.Error != nil {
 		log.Printf("Delivery failed: %v\n", m.TopicPartition.Error)
 	} else {
-		log.Printf("Produced message to topic %s: key=%s value=%s\n", *m.TopicPartition.Topic, string(m.Key), string(m.Value))
+		log.Printf("\nProduced message to topic %s: key=%s value=%s\n", *m.TopicPartition.Topic, string(m.Key), string(m.Value))
 	}
 }
 
