@@ -1,12 +1,11 @@
-# Stage 1: Build the Go app
-FROM arm64v8/golang:alpine AS builder
+# Stage 1: Build the Go app for Linux x86 architecture
+FROM golang:alpine AS builder
 
 # Install dependencies
-RUN apk update && apk add --no-cache git
-RUN apk --no-cache add git gcc libc-dev musl-dev
+RUN apk update && apk add --no-cache git gcc libc-dev musl-dev
+
 # Set the working directory inside the container
 WORKDIR /app
-
 
 # Copy the go.mod and go.sum files first, and download dependencies
 COPY go.mod go.sum ./
@@ -15,20 +14,15 @@ RUN go mod download
 # Copy the rest of the application source code to the working directory
 COPY . .
 
-# Build the Go application as a statically linked binary
+# Build the Go application as a statically linked binary for Linux x86_64 architecture
 ENV CGO_ENABLED 1
-# ENV GOFLAGS -mod=vendor
-# ENV GOOS=linux
-# ENV GOARCH=arm64
+ENV GOOS linux
+ENV GOARCH amd64
 
-# ENV CC aarch64-linux-gnu-gcc
-ENV GOOS linux 
-ENV GOARCH arm64 
-ENV CGO_ENABLED 1 
-RUN  go build -v  -tags musl -o goapp .
+RUN go build -v -tags musl -o goapp .
 
-# Stage 2: Run the Go app with minimal image
-FROM arm64v8/alpine
+# Stage 2: Run the Go app with a minimal Alpine image
+FROM alpine:latest
 
 # Set up necessary certificates (for HTTPS communication, if required)
 RUN apk add --no-cache ca-certificates
@@ -39,7 +33,7 @@ WORKDIR /root/
 # Copy the compiled Go binary from the first stage
 COPY --from=builder /app/goapp .
 
-# Expose the port that the app will run on (e.g., 9000 if you're using Fiber)
+# Expose the port that the app will run on (e.g., 9000)
 EXPOSE 9000
 
 # Run the Go application
