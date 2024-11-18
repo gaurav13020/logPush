@@ -61,7 +61,7 @@ func main() {
 		fmt.Print(jsonMessage)
 
 		// Produce the raw JSON to Kafka
-		kafkaClient.ProduceMessage(kafkaConfig.Topic, 1, string(jsonMessage))
+		kafkaClient.ProduceMessage(kafkaConfig.Topic, 0, string(jsonMessage))
 
 		return c.SendString("Log received and sent to Kafka")
 	})
