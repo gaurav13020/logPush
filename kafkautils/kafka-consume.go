@@ -52,7 +52,7 @@ func (kc *KafkaClient) ProduceMessage(topic string, partition int32, message str
 	e := <-kc.Producer.Events()
 	m := e.(*kafka.Message)
 	if m.TopicPartition.Error != nil {
-		log.Printf("Delivery failed: %v\n", m.TopicPartition.Error)
+		log.Printf("Delivery failed: %v\n", m.String())
 	} else {
 		log.Printf("\nProduced message to topic %s: key=%s value=%s\n", *m.TopicPartition.Topic, string(m.Key), string(m.Value))
 	}

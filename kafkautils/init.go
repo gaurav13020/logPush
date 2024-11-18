@@ -20,7 +20,6 @@ type KafkaConfig struct {
 // InitKafka initializes the Kafka topic with partitions and replication
 func InitKafka(adminClient *kafka.AdminClient) KafkaConfig {
 	// Define topic and partition settings
-	// kafka_host := os.Getenv("KAFKA_HOST")
 	kafkaConfig := KafkaConfig{
 		Topic:             "partitioned-topic",
 		NumPartitions:     2,                             // Adjust the partition count as needed
@@ -32,43 +31,39 @@ func InitKafka(adminClient *kafka.AdminClient) KafkaConfig {
 	topicName := kafkaConfig.Topic
 	metadata, err := adminClient.GetMetadata(&topicName, false, 5000)
 	if err != nil {
-		// Handle the error gracefully
 		log.Printf("Error occurred while getting Kafka metadata: %s\n", err)
-		return kafkaConfig // or handle it as needed
+		return kafkaConfig
 	}
 
 	// Check if the topic exists in the metadata
 	topicExists := false
-	if _, ok := metadata.Topics[topicName]; ok {
-		fmt.Printf("Topic '%s' already exists.\n", topicName)
+	if topicMetadata, ok := metadata.Topics[topicName]; ok {
 		topicExists = true
+		if len(topicMetadata.Partitions) == 0 {
+			log.Printf("Topic '%s' has zero partitions, recreating...\n", topicName)
+			topicExists = false
+		} else {
+			fmt.Printf("Topic '%s' already exists with %d partitions.\n", topicName, len(topicMetadata.Partitions))
+		}
 	}
 
-	// Create the topic only if it does not exist
+	// Create the topic if it does not exist or has zero partitions
 	if !topicExists {
-		// Define the topic creation request
-		topicConfig := kafka.TopicSpecification{
+		topicSpecification := kafka.TopicSpecification{
 			Topic:             kafkaConfig.Topic,
 			NumPartitions:     kafkaConfig.NumPartitions,
 			ReplicationFactor: kafkaConfig.ReplicationFactor,
 		}
 
-		// Create the topic
-		results, err := adminClient.CreateTopics(context.Background(), []kafka.TopicSpecification{topicConfig})
+		_, err := adminClient.CreateTopics(
+			context.Background(),
+			[]kafka.TopicSpecification{topicSpecification},
+		)
 		if err != nil {
 			log.Fatalf("Failed to create topic: %s\n", err)
 		}
-
-		// Handle the results of topic creation
-		for _, result := range results {
-			if result.Error.Code() != kafka.ErrNoError {
-				fmt.Printf("Failed to create topic: %s (%s)\n", result.Topic, result.Error.String())
-			} else {
-				fmt.Printf("Topic '%s' created successfully with %d partitions\n", result.Topic, kafkaConfig.NumPartitions)
-			}
-		}
+		fmt.Printf("Topic '%s' created with %d partitions.\n", kafkaConfig.Topic, kafkaConfig.NumPartitions)
 	}
 
-	// Return Kafka configuration for further use
 	return kafkaConfig
 }
