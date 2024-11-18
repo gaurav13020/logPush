@@ -22,7 +22,7 @@ func main() {
 	// Step 1: Create Kafka Admin Client
 	// kafka_host := os.Getenv("KAFKA_HOST")
 	adminClient, err := kafka.NewAdminClient(&kafka.ConfigMap{
-		"bootstrap.servers": "host.docker.internal:9092", // Replace with the first broker address
+		"bootstrap.servers": "kafka:9092", // Replace with the first broker address
 	})
 	if err != nil {
 		log.Fatalf("Failed to create Kafka admin client: %s\n", err)

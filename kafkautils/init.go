@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 
-	"os"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 )
@@ -21,12 +20,12 @@ type KafkaConfig struct {
 // InitKafka initializes the Kafka topic with partitions and replication
 func InitKafka(adminClient *kafka.AdminClient) KafkaConfig {
 	// Define topic and partition settings
-	kafka_host := os.Getenv("KAFKA_HOST")
+	// kafka_host := os.Getenv("KAFKA_HOST")
 	kafkaConfig := KafkaConfig{
 		Topic:             "partitioned-topic",
-		NumPartitions:     1,                             // Adjust the partition count as needed
+		NumPartitions:     2,                             // Adjust the partition count as needed
 		ReplicationFactor: 1,                             // Adjust replication factor as per requirements
-		Brokers:           []string{kafka_host + "9092"}, // Replace with the first broker address
+		Brokers:           []string{"kafka:9092"}, // Replace with the first broker address
 	}
 
 	// Use Metadata to check if the topic exists
